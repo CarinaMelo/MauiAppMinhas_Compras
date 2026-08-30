@@ -5,12 +5,14 @@ namespace MauiAppMinhasCompras.Views;
 
 public partial class ListaProduto : ContentPage
 {
-    ObservableCollection<Produto> lista = new ObservableCollection<Produto>();
+    private ObservableCollection<Produto> lista =
+        new ObservableCollection<Produto>();
 
     public ListaProduto()
     {
         InitializeComponent();
 
+        // Liga a ObservableCollection à ListView
         lst_produtos.ItemsSource = lista;
     }
 
@@ -19,8 +21,13 @@ public partial class ListaProduto : ContentPage
         try
         {
             lista.Clear();
+
             List<Produto> tmp = await App.Db.GetAll();
-            tmp.ForEach(i => lista.Add(i));
+
+            foreach (Produto produto in tmp)
+            {
+                lista.Add(produto);
+            }
         }
         catch (Exception ex)
         {
@@ -33,7 +40,6 @@ public partial class ListaProduto : ContentPage
         try
         {
             Navigation.PushAsync(new Views.NovoProduto());
-
         }
         catch (Exception ex)
         {
@@ -41,27 +47,41 @@ public partial class ListaProduto : ContentPage
         }
     }
 
-    private async void txt_search_TextChanged(object sender, TextChangedEventArgs e)
+    // Evento executado sempre que o texto do SearchBar é alterado
+    private async void txt_search_TextChanged(
+        object sender,
+        TextChangedEventArgs e)
     {
         try
         {
-            string q = e.NewTextValue;
-
-            lst_produtos.IsRefreshing = true;
+            // Pega o texto digitado e remove espaços desnecessários
+            string q = e.NewTextValue?.Trim() ?? "";
 
             lista.Clear();
 
-            List<Produto> tmp = await App.Db.Search(q);
+            List<Produto> tmp;
 
-            tmp.ForEach(i => lista.Add(i));
+            // Se o SearchBar estiver vazio,
+            // mostra todos os produtos
+            if (string.IsNullOrEmpty(q))
+            {
+                tmp = await App.Db.GetAll();
+            }
+            else
+            {
+                // Se tiver texto, realiza a pesquisa
+                tmp = await App.Db.Search(q);
+            }
+
+            // Adiciona os resultados na ObservableCollection
+            foreach (Produto produto in tmp)
+            {
+                lista.Add(produto);
+            }
         }
         catch (Exception ex)
         {
             await DisplayAlert("Ops", ex.Message, "OK");
-        }
-        finally
-        {
-            lst_produtos.IsRefreshing = false;
         }
     }
 
@@ -78,15 +98,20 @@ public partial class ListaProduto : ContentPage
     {
         try
         {
-            MenuItem selecinado = sender as MenuItem;
-            Produto p = selecinado.BindingContext as Produto;
+            MenuItem selecionado = sender as MenuItem;
+
+            Produto p = selecionado.BindingContext as Produto;
 
             bool confirm = await DisplayAlert(
-                "Tem Certeza?", $"Remover {p.Descricao}?", "Sim", "Não");
+                "Tem Certeza?",
+                $"Remover {p.Descricao}?",
+                "Sim",
+                "Não");
 
-            if(confirm)
+            if (confirm)
             {
                 await App.Db.Delete(p.Id);
+
                 lista.Remove(p);
             }
         }
@@ -96,7 +121,8 @@ public partial class ListaProduto : ContentPage
         }
     }
 
-    private void lst_produtos_ItemSelected(object sender, 
+    private void lst_produtos_ItemSelected(
+        object sender,
         SelectedItemChangedEventArgs e)
     {
         try
@@ -114,7 +140,9 @@ public partial class ListaProduto : ContentPage
         }
     }
 
-    private async void lst_produtos_Refreshing(object sender, EventArgs e)
+    private async void lst_produtos_Refreshing(
+        object sender,
+        EventArgs e)
     {
         try
         {
@@ -122,13 +150,16 @@ public partial class ListaProduto : ContentPage
 
             List<Produto> tmp = await App.Db.GetAll();
 
-            tmp.ForEach(i => lista.Add(i));
+            foreach (Produto produto in tmp)
+            {
+                lista.Add(produto);
+            }
         }
         catch (Exception ex)
         {
             await DisplayAlert("Ops", ex.Message, "OK");
-
-        } finally
+        }
+        finally
         {
             lst_produtos.IsRefreshing = false;
         }
