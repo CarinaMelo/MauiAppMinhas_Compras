@@ -5,6 +5,8 @@ namespace MauiAppMinhasCompras.Views;
 
 public partial class ListaProduto : ContentPage
 {
+    // ObservableCollection utilizada para atualizar
+    // automaticamente a lista apresentada na tela
     private ObservableCollection<Produto> lista =
         new ObservableCollection<Produto>();
 
@@ -16,14 +18,19 @@ public partial class ListaProduto : ContentPage
         lst_produtos.ItemsSource = lista;
     }
 
-    protected async override void OnAppearing()
+    protected override async void OnAppearing()
     {
+        base.OnAppearing();
+
         try
         {
+            // Limpa a lista atual
             lista.Clear();
 
+            // Busca todos os produtos no banco
             List<Produto> tmp = await App.Db.GetAll();
 
+            // Adiciona os produtos na ObservableCollection
             foreach (Produto produto in tmp)
             {
                 lista.Add(produto);
@@ -31,38 +38,52 @@ public partial class ListaProduto : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ops", ex.Message, "OK");
+            await DisplayAlert(
+                "Ops",
+                ex.Message,
+                "OK");
         }
     }
 
-    private void ToolbarItem_Clicked(object sender, EventArgs e)
+    // Botão Adicionar
+    private async void ToolbarItem_Clicked(
+        object sender,
+        EventArgs e)
     {
         try
         {
-            Navigation.PushAsync(new Views.NovoProduto());
+            await Navigation.PushAsync(
+                new Views.NovoProduto());
         }
         catch (Exception ex)
         {
-            DisplayAlert("Ops", ex.Message, "OK");
+            await DisplayAlert(
+                "Ops",
+                ex.Message,
+                "OK");
         }
     }
 
-    // Evento executado sempre que o texto do SearchBar é alterado
+    // ==========================================
+    // BUSCA DINÂMICA
+    // ==========================================
+
     private async void txt_search_TextChanged(
         object sender,
         TextChangedEventArgs e)
     {
         try
         {
-            // Pega o texto digitado e remove espaços desnecessários
+            // Pega o texto digitado
             string q = e.NewTextValue?.Trim() ?? "";
 
+            // Limpa os resultados anteriores
             lista.Clear();
 
             List<Produto> tmp;
 
-            // Se o SearchBar estiver vazio,
-            // mostra todos os produtos
+            // Se não tiver texto, mostra todos
+            // os produtos cadastrados
             if (string.IsNullOrEmpty(q))
             {
                 tmp = await App.Db.GetAll();
@@ -73,7 +94,8 @@ public partial class ListaProduto : ContentPage
                 tmp = await App.Db.Search(q);
             }
 
-            // Adiciona os resultados na ObservableCollection
+            // Adiciona os resultados encontrados
+            // na ObservableCollection
             foreach (Produto produto in tmp)
             {
                 lista.Add(produto);
@@ -81,26 +103,52 @@ public partial class ListaProduto : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ops", ex.Message, "OK");
+            await DisplayAlert(
+                "Ops",
+                ex.Message,
+                "OK");
         }
     }
 
-    private void ToolbarItem_Clicked_1(object sender, EventArgs e)
-    {
-        double soma = lista.Sum(i => i.Total);
-
-        string msg = $"O total é {soma:C}";
-
-        DisplayAlert("Total dos Produtos", msg, "OK");
-    }
-
-    private async void MenuItem_Clicked(object sender, EventArgs e)
+    // Botão Somar
+    private async void ToolbarItem_Clicked_1(
+        object sender,
+        EventArgs e)
     {
         try
         {
-            MenuItem selecionado = sender as MenuItem;
+            double soma = lista.Sum(
+                i => i.Total);
 
-            Produto p = selecionado.BindingContext as Produto;
+            string msg =
+                $"O total é {soma:C}";
+
+            await DisplayAlert(
+                "Total dos Produtos",
+                msg,
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                "Ops",
+                ex.Message,
+                "OK");
+        }
+    }
+
+    // Excluir produto
+    private async void MenuItem_Clicked(
+        object sender,
+        EventArgs e)
+    {
+        try
+        {
+            MenuItem selecionado =
+                sender as MenuItem;
+
+            Produto p =
+                selecionado.BindingContext as Produto;
 
             bool confirm = await DisplayAlert(
                 "Tem Certeza?",
@@ -112,34 +160,51 @@ public partial class ListaProduto : ContentPage
             {
                 await App.Db.Delete(p.Id);
 
+                // Remove também da ObservableCollection
                 lista.Remove(p);
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ops", ex.Message, "OK");
+            await DisplayAlert(
+                "Ops",
+                ex.Message,
+                "OK");
         }
     }
 
-    private void lst_produtos_ItemSelected(
+    // Selecionar produto para editar
+    private async void lst_produtos_ItemSelected(
         object sender,
         SelectedItemChangedEventArgs e)
     {
         try
         {
-            Produto p = e.SelectedItem as Produto;
+            if (e.SelectedItem == null)
+                return;
 
-            Navigation.PushAsync(new Views.EditarProduto
-            {
-                BindingContext = p,
-            });
+            Produto p =
+                e.SelectedItem as Produto;
+
+            await Navigation.PushAsync(
+                new Views.EditarProduto
+                {
+                    BindingContext = p
+                });
+
+            // Remove a seleção visual
+            lst_produtos.SelectedItem = null;
         }
         catch (Exception ex)
         {
-            DisplayAlert("Ops", ex.Message, "OK");
+            await DisplayAlert(
+                "Ops",
+                ex.Message,
+                "OK");
         }
     }
 
+    // Atualizar a lista com Pull to Refresh
     private async void lst_produtos_Refreshing(
         object sender,
         EventArgs e)
@@ -148,7 +213,8 @@ public partial class ListaProduto : ContentPage
         {
             lista.Clear();
 
-            List<Produto> tmp = await App.Db.GetAll();
+            List<Produto> tmp =
+                await App.Db.GetAll();
 
             foreach (Produto produto in tmp)
             {
@@ -157,7 +223,10 @@ public partial class ListaProduto : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Ops", ex.Message, "OK");
+            await DisplayAlert(
+                "Ops",
+                ex.Message,
+                "OK");
         }
         finally
         {
